@@ -1,16 +1,38 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 
 export default function BountyLanding() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('poster');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email) {
+    if (!email) return;
+    
+    setLoading(true);
+    setError('');
+
+    try {
+      // Save email to Firestore
+      await addDoc(collection(db, 'waitlist'), {
+        email: email.toLowerCase().trim(),
+        source: 'landing_page',
+        createdAt: serverTimestamp()
+      });
+      
       setSubmitted(true);
+      setEmail('');
+    } catch (err) {
+      console.error('Error saving email:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,13 +63,13 @@ export default function BountyLanding() {
           <a href="#how-it-works" className="text-zinc-400 hover:text-white transition-colors text-sm">How it works</a>
           <a href="#use-cases" className="text-zinc-400 hover:text-white transition-colors text-sm">Use cases</a>
           <button 
-            onClick={() => navigate('/hunt')}
+            onClick={() => navigate('/auth')}
             className="px-4 py-2 text-zinc-400 hover:text-white transition-colors text-sm"
           >
             Hunt bounties
           </button>
           <button 
-            onClick={() => navigate('/post')}
+            onClick={() => navigate('/auth')}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-all border border-white/10"
           >
             Post bounties
@@ -86,12 +108,14 @@ export default function BountyLanding() {
                 placeholder="Enter your email"
                 className="flex-1 px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:border-amber-500/50 focus:bg-white/10 transition-all"
                 required
+                disabled={loading}
               />
               <button
                 type="submit"
-                className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl font-semibold text-black transition-all hover:scale-105 hover:shadow-lg hover:shadow-amber-500/25"
+                disabled={loading}
+                className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl font-semibold text-black transition-all hover:scale-105 hover:shadow-lg hover:shadow-amber-500/25 disabled:opacity-50 disabled:hover:scale-100"
               >
-                Get early access
+                {loading ? 'Joining...' : 'Get early access'}
               </button>
             </form>
           ) : (
@@ -99,8 +123,12 @@ export default function BountyLanding() {
               <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-emerald-400">You're on the list. We'll be in touch soon.</span>
+              <span className="text-emerald-400">You're on the list! We'll be in touch soon.</span>
             </div>
+          )}
+
+          {error && (
+            <p className="text-red-400 text-sm mt-2">{error}</p>
           )}
 
           <p className="text-zinc-600 text-sm mt-4">Join 847 others waiting for launch</p>
@@ -263,7 +291,7 @@ export default function BountyLanding() {
                   ))}
                 </ul>
                 <button 
-                  onClick={() => navigate('/post')}
+                  onClick={() => navigate('/auth')}
                   className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl font-semibold text-black transition-all"
                 >
                   Start posting bounties →
@@ -321,7 +349,7 @@ export default function BountyLanding() {
                   ))}
                 </ul>
                 <button 
-                  onClick={() => navigate('/hunt')}
+                  onClick={() => navigate('/auth')}
                   className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl font-semibold text-black transition-all"
                 >
                   Start hunting bounties →
@@ -391,10 +419,10 @@ export default function BountyLanding() {
                 Join the waitlist and be first to access the marketplace where outcomes are the only currency that matters.
               </p>
               <button 
-                onClick={() => navigate('/post')}
+                onClick={() => navigate('/auth')}
                 className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl font-semibold text-black transition-all hover:scale-105 hover:shadow-lg hover:shadow-amber-500/25"
               >
-                Get early access →
+                Get started free →
               </button>
             </div>
           </div>
